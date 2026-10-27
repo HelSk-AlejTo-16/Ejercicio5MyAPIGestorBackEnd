@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ComentariosController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Ejercicio5MyAPIGestor</a> &gt; <a href="index.source.html" class="el_package">com.mx.cbtis.gestor.controller</a> &gt; <span class="el_source">ComentariosController.java</span></div><h1>ComentariosController.java</h1><pre class="source lang-java linenums">package com.mx.cbtis.gestor.controller;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.mx.cbtis.gestor.modelo.Comentarios;
+import com.mx.cbtis.gestor.repository.ComentariosRepository;
+import com.mx.cbtis.gestor.repository.TareasRepository;
+
+@RestController
+<span class="fc" id="L27">public class ComentariosController {</span>
+	
+	@Autowired
+	ComentariosRepository comentariostable;
+	
+	@Autowired
+	TareasRepository tareastable;
+	
+	// UT-24 (H-08, H-10)
+	@RequestMapping(value = &quot;/getComentario&quot;, method = {RequestMethod.GET, RequestMethod.POST})
+	public ResponseEntity&lt;Object&gt; getComentario(
+			@RequestBody(required = false) Comentarios idComentario,
+			@RequestParam(value = &quot;id_tarea&quot;, required = false) Integer idTareaParam) {
+		
+<span class="fc" id="L41">		Integer idTarea = null;</span>
+<span class="fc bfc" id="L42" title="All 4 branches covered.">		if (idComentario != null &amp;&amp; idComentario.getId_tarea() != null) {</span>
+<span class="fc" id="L43">			idTarea = idComentario.getId_tarea();</span>
+<span class="fc bfc" id="L44" title="All 2 branches covered.">		} else if (idTareaParam != null) {</span>
+<span class="fc" id="L45">			idTarea = idTareaParam;</span>
+		}
+		
+<span class="fc bfc" id="L48" title="All 2 branches covered.">		if (idTarea == null) {</span>
+<span class="fc" id="L49">			Map&lt;String, Object&gt; error = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L50">			error.put(&quot;status&quot;, HttpStatus.BAD_REQUEST.value());</span>
+<span class="fc" id="L51">			error.put(&quot;error&quot;, &quot;Parámetro faltante&quot;);</span>
+<span class="fc" id="L52">			error.put(&quot;mensaje&quot;, &quot;Debe proporcionar el ID de la tarea&quot;);</span>
+<span class="fc" id="L53">			return ResponseEntity.badRequest().body(error);</span>
+		}
+		
+		// H-10: Si la tarea no existe en base de datos
+<span class="fc bfc" id="L57" title="All 2 branches covered.">		if (!tareastable.existsById(idTarea)) {</span>
+<span class="fc" id="L58">			Map&lt;String, Object&gt; error = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L59">			error.put(&quot;status&quot;, HttpStatus.NOT_FOUND.value());</span>
+<span class="fc" id="L60">			error.put(&quot;error&quot;, &quot;Tarea inexistente&quot;);</span>
+<span class="fc" id="L61">			error.put(&quot;mensaje&quot;, &quot;No se encontró ninguna tarea con el ID especificado: &quot; + idTarea);</span>
+<span class="fc" id="L62">			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);</span>
+		}
+		
+<span class="fc" id="L65">		List&lt;Comentarios&gt; listaComentarios = comentariostable.findByTarea(idTarea);</span>
+<span class="fc" id="L66">		return ResponseEntity.ok()</span>
+<span class="fc" id="L67">				.header(&quot;X-Mensaje&quot;, &quot;Comentarios de la tarea consultados exitosamente. Total: &quot; + listaComentarios.size())</span>
+<span class="fc" id="L68">				.body(listaComentarios);</span>
+	}
+	
+	// UT-25, UT-26 (H-02)
+	@GetMapping(&quot;/buscarComentario&quot;)
+	public ResponseEntity&lt;Object&gt; getComentario(
+			@RequestParam(value = &quot;id&quot;, required = false) Integer id,
+			@RequestParam(value = &quot;id_comentario&quot;, required = false) Integer id_comentario) {
+		
+<span class="fc bfc" id="L77" title="All 2 branches covered.">		Integer searchId = (id != null) ? id : id_comentario;</span>
+<span class="fc bfc" id="L78" title="All 2 branches covered.">		if (searchId == null) {</span>
+<span class="fc" id="L79">			Map&lt;String, Object&gt; error = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L80">			error.put(&quot;status&quot;, HttpStatus.BAD_REQUEST.value());</span>
+<span class="fc" id="L81">			error.put(&quot;error&quot;, &quot;Parámetro faltante&quot;);</span>
+<span class="fc" id="L82">			error.put(&quot;mensaje&quot;, &quot;Debe proporcionar el parámetro 'id' o 'id_comentario' para realizar la búsqueda&quot;);</span>
+<span class="fc" id="L83">			return ResponseEntity.badRequest().body(error);</span>
+		}
+		
+<span class="fc" id="L86">		Optional&lt;Comentarios&gt; comentario = comentariostable.findById(searchId);</span>
+<span class="fc bfc" id="L87" title="All 2 branches covered.">		if (comentario.isPresent()) {</span>
+<span class="fc" id="L88">			Comentarios c = comentario.get();</span>
+<span class="fc" id="L89">			Map&lt;String, Object&gt; respuesta = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L90">			respuesta.put(&quot;status&quot;, HttpStatus.OK.value());</span>
+<span class="fc" id="L91">			respuesta.put(&quot;mensaje&quot;, &quot;Comentario encontrado exitosamente&quot;);</span>
+<span class="fc" id="L92">			respuesta.put(&quot;id_comentario&quot;, c.getId_comentario());</span>
+<span class="fc" id="L93">			respuesta.put(&quot;id_usuario&quot;, c.getId_usuario());</span>
+<span class="fc" id="L94">			respuesta.put(&quot;id_tarea&quot;, c.getId_tarea());</span>
+<span class="fc" id="L95">			respuesta.put(&quot;texto_comentario&quot;, c.getTexto_comentario());</span>
+<span class="fc" id="L96">			respuesta.put(&quot;fecha_hora&quot;, c.getFecha_hora());</span>
+<span class="fc" id="L97">			return ResponseEntity.ok(respuesta);</span>
+		}
+		
+<span class="fc" id="L100">		Map&lt;String, Object&gt; error = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L101">		error.put(&quot;status&quot;, HttpStatus.NOT_FOUND.value());</span>
+<span class="fc" id="L102">		error.put(&quot;error&quot;, &quot;Comentario no encontrado&quot;);</span>
+<span class="fc" id="L103">		error.put(&quot;mensaje&quot;, &quot;No se encontró ningún comentario con el ID especificado: &quot; + searchId);</span>
+<span class="fc" id="L104">		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);</span>
+	}
+	
+	// UT-27 (H-06, H-09, H-11)
+	@PostMapping(&quot;/addComentario&quot;)
+	public ResponseEntity&lt;Object&gt; addComentario(@RequestBody(required = false) Comentarios comentario) {
+<span class="fc bfc" id="L110" title="All 2 branches covered.">		if (comentario == null) {</span>
+<span class="fc" id="L111">			Map&lt;String, Object&gt; error = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L112">			error.put(&quot;status&quot;, HttpStatus.BAD_REQUEST.value());</span>
+<span class="fc" id="L113">			error.put(&quot;error&quot;, &quot;Datos incompletos&quot;);</span>
+<span class="fc" id="L114">			error.put(&quot;mensaje&quot;, &quot;El cuerpo de la solicitud no contiene datos del comentario&quot;);</span>
+<span class="fc" id="L115">			error.put(&quot;resultado&quot;, 0);</span>
+<span class="fc" id="L116">			return ResponseEntity.badRequest().body(error);</span>
+		}
+		
+		// H-09: No permitir crear si ya existe con ese ID
+<span class="pc bpc" id="L120" title="3 of 4 branches missed.">		if (comentario.getId_comentario() != null &amp;&amp; comentariostable.existsById(comentario.getId_comentario())) {</span>
+<span class="nc" id="L121">			Map&lt;String, Object&gt; error = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L122">			error.put(&quot;status&quot;, HttpStatus.CONFLICT.value());</span>
+<span class="nc" id="L123">			error.put(&quot;error&quot;, &quot;ID existente&quot;);</span>
+<span class="nc" id="L124">			error.put(&quot;mensaje&quot;, &quot;Ya existe un comentario con el ID especificado&quot;);</span>
+<span class="nc" id="L125">			error.put(&quot;resultado&quot;, 0);</span>
+<span class="nc" id="L126">			return ResponseEntity.status(HttpStatus.CONFLICT).body(error);</span>
+		}
+		
+		// H-11: Validar clave foránea id_tarea
+<span class="pc bpc" id="L130" title="1 of 4 branches missed.">		if (comentario.getId_tarea() == null || !tareastable.existsById(comentario.getId_tarea())) {</span>
+<span class="fc" id="L131">			Map&lt;String, Object&gt; error = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L132">			error.put(&quot;status&quot;, HttpStatus.BAD_REQUEST.value());</span>
+<span class="fc" id="L133">			error.put(&quot;error&quot;, &quot;Tarea inexistente&quot;);</span>
+<span class="pc bpc" id="L134" title="1 of 2 branches missed.">			error.put(&quot;mensaje&quot;, &quot;La tarea asociada (id_tarea: &quot; + (comentario.getId_tarea() != null ? comentario.getId_tarea() : &quot;nulo&quot;) + &quot;) no existe&quot;);</span>
+<span class="fc" id="L135">			error.put(&quot;resultado&quot;, 0);</span>
+<span class="fc" id="L136">			return ResponseEntity.badRequest().body(error);</span>
+		}
+		
+<span class="fc" id="L139">		comentariostable.save(comentario);</span>
+<span class="fc" id="L140">		Map&lt;String, Object&gt; respuesta = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L141">		respuesta.put(&quot;status&quot;, HttpStatus.OK.value());</span>
+<span class="fc" id="L142">		respuesta.put(&quot;mensaje&quot;, &quot;Comentario registrado exitosamente&quot;);</span>
+<span class="fc" id="L143">		respuesta.put(&quot;resultado&quot;, 1);</span>
+<span class="fc" id="L144">		return ResponseEntity.ok(respuesta);</span>
+	}
+	
+	// UT-28 (H-05, H-06, H-07, H-11)
+	@RequestMapping(value = &quot;/updateComentario&quot;, method = {RequestMethod.POST, RequestMethod.PUT})
+	public ResponseEntity&lt;Object&gt; updateComentario(@RequestBody(required = false) Comentarios comentario) {
+<span class="pc bpc" id="L150" title="1 of 4 branches missed.">		if (comentario == null || comentario.getId_comentario() == null) {</span>
+<span class="fc" id="L151">			Map&lt;String, Object&gt; error = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L152">			error.put(&quot;status&quot;, HttpStatus.BAD_REQUEST.value());</span>
+<span class="fc" id="L153">			error.put(&quot;error&quot;, &quot;Datos incompletos&quot;);</span>
+<span class="fc" id="L154">			error.put(&quot;mensaje&quot;, &quot;Se requiere el ID del comentario para actualizar&quot;);</span>
+<span class="fc" id="L155">			error.put(&quot;resultado&quot;, 0);</span>
+<span class="fc" id="L156">			return ResponseEntity.badRequest().body(error);</span>
+		}
+		
+		// H-06: Validar existencia antes de actualizar
+<span class="fc bfc" id="L160" title="All 2 branches covered.">		if (!comentariostable.existsById(comentario.getId_comentario())) {</span>
+<span class="fc" id="L161">			Map&lt;String, Object&gt; error = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L162">			error.put(&quot;status&quot;, HttpStatus.NOT_FOUND.value());</span>
+<span class="fc" id="L163">			error.put(&quot;error&quot;, &quot;Comentario no encontrado&quot;);</span>
+<span class="fc" id="L164">			error.put(&quot;mensaje&quot;, &quot;No existe un comentario con el ID proporcionado&quot;);</span>
+<span class="fc" id="L165">			error.put(&quot;resultado&quot;, 0);</span>
+<span class="fc" id="L166">			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);</span>
+		}
+		
+		// H-11: Validar clave foránea id_tarea si se actualiza
+<span class="pc bpc" id="L170" title="2 of 4 branches missed.">		if (comentario.getId_tarea() != null &amp;&amp; !tareastable.existsById(comentario.getId_tarea())) {</span>
+<span class="nc" id="L171">			Map&lt;String, Object&gt; error = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L172">			error.put(&quot;status&quot;, HttpStatus.BAD_REQUEST.value());</span>
+<span class="nc" id="L173">			error.put(&quot;error&quot;, &quot;Tarea inexistente&quot;);</span>
+<span class="nc" id="L174">			error.put(&quot;mensaje&quot;, &quot;La tarea asociada especificada no existe&quot;);</span>
+<span class="nc" id="L175">			error.put(&quot;resultado&quot;, 0);</span>
+<span class="nc" id="L176">			return ResponseEntity.badRequest().body(error);</span>
+		}
+		
+<span class="fc" id="L179">		comentariostable.save(comentario);</span>
+<span class="fc" id="L180">		Map&lt;String, Object&gt; respuesta = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L181">		respuesta.put(&quot;status&quot;, HttpStatus.OK.value());</span>
+<span class="fc" id="L182">		respuesta.put(&quot;mensaje&quot;, &quot;Comentario actualizado exitosamente&quot;);</span>
+<span class="fc" id="L183">		respuesta.put(&quot;resultado&quot;, 1);</span>
+<span class="fc" id="L184">		return ResponseEntity.ok(respuesta);</span>
+	}
+	
+	// UT-29 (H-07)
+	@DeleteMapping(&quot;/deleteComentario&quot;)
+	public ResponseEntity&lt;Object&gt; deleteComentario(
+			@RequestBody(required = false) Comentarios comentario,
+			@RequestParam(value = &quot;id_comentario&quot;, required = false) Integer id_comentario,
+			@RequestParam(value = &quot;id&quot;, required = false) Integer id) {
+		
+<span class="fc" id="L194">		Integer deleteId = null;</span>
+<span class="pc bpc" id="L195" title="1 of 4 branches missed.">		if (comentario != null &amp;&amp; comentario.getId_comentario() != null) {</span>
+<span class="fc" id="L196">			deleteId = comentario.getId_comentario();</span>
+<span class="pc bpc" id="L197" title="1 of 2 branches missed.">		} else if (id_comentario != null) {</span>
+<span class="nc" id="L198">			deleteId = id_comentario;</span>
+<span class="pc bpc" id="L199" title="1 of 2 branches missed.">		} else if (id != null) {</span>
+<span class="fc" id="L200">			deleteId = id;</span>
+		}
+		
+<span class="pc bpc" id="L203" title="1 of 4 branches missed.">		if (deleteId == null || !comentariostable.existsById(deleteId)) {</span>
+<span class="fc" id="L204">			Map&lt;String, Object&gt; error = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L205">			error.put(&quot;status&quot;, HttpStatus.NOT_FOUND.value());</span>
+<span class="fc" id="L206">			error.put(&quot;error&quot;, &quot;Comentario no encontrado&quot;);</span>
+<span class="fc" id="L207">			error.put(&quot;mensaje&quot;, &quot;No se encontró ningún comentario con el ID especificado para eliminar&quot;);</span>
+<span class="fc" id="L208">			error.put(&quot;resultado&quot;, 0);</span>
+<span class="fc" id="L209">			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);</span>
+		}
+		
+<span class="fc" id="L212">		comentariostable.deleteById(deleteId);</span>
+<span class="fc" id="L213">		Map&lt;String, Object&gt; respuesta = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L214">		respuesta.put(&quot;status&quot;, HttpStatus.OK.value());</span>
+<span class="fc" id="L215">		respuesta.put(&quot;mensaje&quot;, &quot;Comentario eliminado exitosamente&quot;);</span>
+<span class="fc" id="L216">		respuesta.put(&quot;resultado&quot;, 1);</span>
+<span class="fc" id="L217">		return ResponseEntity.ok(respuesta);</span>
+	}
+	
+	// UT-30 (H-08)
+	@RequestMapping(value = &quot;/buscarComentarios&quot;, method = {RequestMethod.GET, RequestMethod.POST})
+	public ResponseEntity&lt;List&lt;Comentarios&gt;&gt; getComentarios() {
+<span class="fc" id="L223">		List&lt;Comentarios&gt; listaComentarios = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L224">		comentariostable.findAll().forEach(listaComentarios::add);</span>
+<span class="fc" id="L225">		return ResponseEntity.ok()</span>
+<span class="fc" id="L226">				.header(&quot;X-Mensaje&quot;, &quot;Comentarios consultados exitosamente. Total: &quot; + listaComentarios.size())</span>
+<span class="fc" id="L227">				.body(listaComentarios);</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

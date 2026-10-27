@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AsignacionesController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Ejercicio5MyAPIGestor</a> &gt; <a href="index.source.html" class="el_package">com.mx.cbtis.gestor.controller</a> &gt; <span class="el_source">AsignacionesController.java</span></div><h1>AsignacionesController.java</h1><pre class="source lang-java linenums">package com.mx.cbtis.gestor.controller;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.mx.cbtis.gestor.modelo.Asignaciones;
+import com.mx.cbtis.gestor.repository.AsignacionesRepository;
+import com.mx.cbtis.gestor.repository.TareasRepository;
+import com.mx.cbtis.gestor.repository.UsuarioRepository;
+
+@RestController
+<span class="fc" id="L28">public class AsignacionesController {</span>
+	
+	@Autowired
+	AsignacionesRepository asignacionestable;
+	
+	@Autowired
+	UsuarioRepository usuariotable;
+	
+	@Autowired
+	TareasRepository tareastable;
+	
+	// UT-31, UT-32 (H-02)
+	@GetMapping(&quot;/buscarAsignacion&quot;)
+	public ResponseEntity&lt;Object&gt; getAsignacion(
+			@RequestParam(value = &quot;id&quot;, required = false) Integer id,
+			@RequestParam(value = &quot;id_asignacion&quot;, required = false) Integer id_asignacion) {
+		
+<span class="fc bfc" id="L45" title="All 2 branches covered.">		Integer searchId = (id != null) ? id : id_asignacion;</span>
+<span class="fc bfc" id="L46" title="All 2 branches covered.">		if (searchId == null) {</span>
+<span class="fc" id="L47">			Map&lt;String, Object&gt; error = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L48">			error.put(&quot;status&quot;, HttpStatus.BAD_REQUEST.value());</span>
+<span class="fc" id="L49">			error.put(&quot;error&quot;, &quot;Parámetro faltante&quot;);</span>
+<span class="fc" id="L50">			error.put(&quot;mensaje&quot;, &quot;Debe proporcionar el parámetro 'id' o 'id_asignacion' para realizar la búsqueda&quot;);</span>
+<span class="fc" id="L51">			return ResponseEntity.badRequest().body(error);</span>
+		}
+		
+<span class="fc" id="L54">		Optional&lt;Asignaciones&gt; asignacion = asignacionestable.findById(searchId);</span>
+<span class="fc bfc" id="L55" title="All 2 branches covered.">		if (asignacion.isPresent()) {</span>
+<span class="fc" id="L56">			Asignaciones a = asignacion.get();</span>
+<span class="fc" id="L57">			Map&lt;String, Object&gt; respuesta = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L58">			respuesta.put(&quot;status&quot;, HttpStatus.OK.value());</span>
+<span class="fc" id="L59">			respuesta.put(&quot;mensaje&quot;, &quot;Asignación encontrada exitosamente&quot;);</span>
+<span class="fc" id="L60">			respuesta.put(&quot;id_asignacion&quot;, a.getId_asignacion());</span>
+<span class="fc" id="L61">			respuesta.put(&quot;id_usuario&quot;, a.getId_usuario());</span>
+<span class="fc" id="L62">			respuesta.put(&quot;id_tarea&quot;, a.getId_tarea());</span>
+<span class="fc" id="L63">			respuesta.put(&quot;fecha_asignacion&quot;, a.getFecha_asignacion());</span>
+<span class="fc" id="L64">			return ResponseEntity.ok(respuesta);</span>
+		}
+		
+<span class="fc" id="L67">		Map&lt;String, Object&gt; error = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L68">		error.put(&quot;status&quot;, HttpStatus.NOT_FOUND.value());</span>
+<span class="fc" id="L69">		error.put(&quot;error&quot;, &quot;Asignación no encontrada&quot;);</span>
+<span class="fc" id="L70">		error.put(&quot;mensaje&quot;, &quot;No se encontró ninguna asignación con el ID especificado: &quot; + searchId);</span>
+<span class="fc" id="L71">		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);</span>
+	}
+	
+	// UT-33 (H-06, H-09, H-11)
+	@PostMapping(&quot;/addAsignacion&quot;)
+	public ResponseEntity&lt;Object&gt; addAsignacion(@RequestBody(required = false) Asignaciones asignacion) {
+<span class="fc bfc" id="L77" title="All 2 branches covered.">		if (asignacion == null) {</span>
+<span class="fc" id="L78">			Map&lt;String, Object&gt; error = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L79">			error.put(&quot;status&quot;, HttpStatus.BAD_REQUEST.value());</span>
+<span class="fc" id="L80">			error.put(&quot;error&quot;, &quot;Datos incompletos&quot;);</span>
+<span class="fc" id="L81">			error.put(&quot;mensaje&quot;, &quot;El cuerpo de la solicitud no contiene datos de la asignación&quot;);</span>
+<span class="fc" id="L82">			error.put(&quot;resultado&quot;, 0);</span>
+<span class="fc" id="L83">			return ResponseEntity.badRequest().body(error);</span>
+		}
+		
+		// H-09: No permitir duplicar/sobrescribir ID si ya existe
+<span class="pc bpc" id="L87" title="3 of 4 branches missed.">		if (asignacion.getId_asignacion() != null &amp;&amp; asignacionestable.existsById(asignacion.getId_asignacion())) {</span>
+<span class="nc" id="L88">			Map&lt;String, Object&gt; error = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L89">			error.put(&quot;status&quot;, HttpStatus.CONFLICT.value());</span>
+<span class="nc" id="L90">			error.put(&quot;error&quot;, &quot;ID existente&quot;);</span>
+<span class="nc" id="L91">			error.put(&quot;mensaje&quot;, &quot;Ya existe una asignación con el ID especificado&quot;);</span>
+<span class="nc" id="L92">			error.put(&quot;resultado&quot;, 0);</span>
+<span class="nc" id="L93">			return ResponseEntity.status(HttpStatus.CONFLICT).body(error);</span>
+		}
+		
+		// H-11: Validar claves foráneas id_usuario y id_tarea
+<span class="pc bpc" id="L97" title="1 of 4 branches missed.">		if (asignacion.getId_usuario() == null || !usuariotable.existsById(asignacion.getId_usuario())) {</span>
+<span class="fc" id="L98">			Map&lt;String, Object&gt; error = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L99">			error.put(&quot;status&quot;, HttpStatus.BAD_REQUEST.value());</span>
+<span class="fc" id="L100">			error.put(&quot;error&quot;, &quot;Usuario inexistente&quot;);</span>
+<span class="pc bpc" id="L101" title="1 of 2 branches missed.">			error.put(&quot;mensaje&quot;, &quot;El usuario asociado (id_usuario: &quot; + (asignacion.getId_usuario() != null ? asignacion.getId_usuario() : &quot;nulo&quot;) + &quot;) no existe&quot;);</span>
+<span class="fc" id="L102">			error.put(&quot;resultado&quot;, 0);</span>
+<span class="fc" id="L103">			return ResponseEntity.badRequest().body(error);</span>
+		}
+<span class="pc bpc" id="L105" title="2 of 4 branches missed.">		if (asignacion.getId_tarea() == null || !tareastable.existsById(asignacion.getId_tarea())) {</span>
+<span class="nc" id="L106">			Map&lt;String, Object&gt; error = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L107">			error.put(&quot;status&quot;, HttpStatus.BAD_REQUEST.value());</span>
+<span class="nc" id="L108">			error.put(&quot;error&quot;, &quot;Tarea inexistente&quot;);</span>
+<span class="nc bnc" id="L109" title="All 2 branches missed.">			error.put(&quot;mensaje&quot;, &quot;La tarea asociada (id_tarea: &quot; + (asignacion.getId_tarea() != null ? asignacion.getId_tarea() : &quot;nulo&quot;) + &quot;) no existe&quot;);</span>
+<span class="nc" id="L110">			error.put(&quot;resultado&quot;, 0);</span>
+<span class="nc" id="L111">			return ResponseEntity.badRequest().body(error);</span>
+		}
+		
+<span class="fc" id="L114">		asignacionestable.save(asignacion);</span>
+<span class="fc" id="L115">		Map&lt;String, Object&gt; respuesta = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L116">		respuesta.put(&quot;status&quot;, HttpStatus.OK.value());</span>
+<span class="fc" id="L117">		respuesta.put(&quot;mensaje&quot;, &quot;Asignación registrada exitosamente&quot;);</span>
+<span class="fc" id="L118">		respuesta.put(&quot;resultado&quot;, 1);</span>
+<span class="fc" id="L119">		return ResponseEntity.ok(respuesta);</span>
+	}
+	
+	// UT-34 (H-05, H-06, H-07, H-11)
+	@RequestMapping(value = &quot;/updateAsignacion&quot;, method = {RequestMethod.POST, RequestMethod.PUT})
+	public ResponseEntity&lt;Object&gt; updateAsignacion(@RequestBody(required = false) Asignaciones asignacion) {
+<span class="pc bpc" id="L125" title="1 of 4 branches missed.">		if (asignacion == null || asignacion.getId_asignacion() == null) {</span>
+<span class="fc" id="L126">			Map&lt;String, Object&gt; error = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L127">			error.put(&quot;status&quot;, HttpStatus.BAD_REQUEST.value());</span>
+<span class="fc" id="L128">			error.put(&quot;error&quot;, &quot;Datos incompletos&quot;);</span>
+<span class="fc" id="L129">			error.put(&quot;mensaje&quot;, &quot;Se requiere el ID de la asignación para actualizar&quot;);</span>
+<span class="fc" id="L130">			error.put(&quot;resultado&quot;, 0);</span>
+<span class="fc" id="L131">			return ResponseEntity.badRequest().body(error);</span>
+		}
+		
+		// H-06: Validar existencia antes de actualizar
+<span class="fc bfc" id="L135" title="All 2 branches covered.">		if (!asignacionestable.existsById(asignacion.getId_asignacion())) {</span>
+<span class="fc" id="L136">			Map&lt;String, Object&gt; error = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L137">			error.put(&quot;status&quot;, HttpStatus.NOT_FOUND.value());</span>
+<span class="fc" id="L138">			error.put(&quot;error&quot;, &quot;Asignación no encontrada&quot;);</span>
+<span class="fc" id="L139">			error.put(&quot;mensaje&quot;, &quot;No existe una asignación con el ID proporcionado&quot;);</span>
+<span class="fc" id="L140">			error.put(&quot;resultado&quot;, 0);</span>
+<span class="fc" id="L141">			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);</span>
+		}
+		
+		// H-11: Validar claves foráneas si se modifican
+<span class="pc bpc" id="L145" title="2 of 4 branches missed.">		if (asignacion.getId_usuario() != null &amp;&amp; !usuariotable.existsById(asignacion.getId_usuario())) {</span>
+<span class="nc" id="L146">			Map&lt;String, Object&gt; error = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L147">			error.put(&quot;status&quot;, HttpStatus.BAD_REQUEST.value());</span>
+<span class="nc" id="L148">			error.put(&quot;error&quot;, &quot;Usuario inexistente&quot;);</span>
+<span class="nc" id="L149">			error.put(&quot;mensaje&quot;, &quot;El usuario asociado especificado no existe&quot;);</span>
+<span class="nc" id="L150">			error.put(&quot;resultado&quot;, 0);</span>
+<span class="nc" id="L151">			return ResponseEntity.badRequest().body(error);</span>
+		}
+<span class="pc bpc" id="L153" title="2 of 4 branches missed.">		if (asignacion.getId_tarea() != null &amp;&amp; !tareastable.existsById(asignacion.getId_tarea())) {</span>
+<span class="nc" id="L154">			Map&lt;String, Object&gt; error = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L155">			error.put(&quot;status&quot;, HttpStatus.BAD_REQUEST.value());</span>
+<span class="nc" id="L156">			error.put(&quot;error&quot;, &quot;Tarea inexistente&quot;);</span>
+<span class="nc" id="L157">			error.put(&quot;mensaje&quot;, &quot;La tarea asociada especificada no existe&quot;);</span>
+<span class="nc" id="L158">			error.put(&quot;resultado&quot;, 0);</span>
+<span class="nc" id="L159">			return ResponseEntity.badRequest().body(error);</span>
+		}
+		
+<span class="fc" id="L162">		asignacionestable.save(asignacion);</span>
+<span class="fc" id="L163">		Map&lt;String, Object&gt; respuesta = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L164">		respuesta.put(&quot;status&quot;, HttpStatus.OK.value());</span>
+<span class="fc" id="L165">		respuesta.put(&quot;mensaje&quot;, &quot;Asignación actualizada exitosamente&quot;);</span>
+<span class="fc" id="L166">		respuesta.put(&quot;resultado&quot;, 1);</span>
+<span class="fc" id="L167">		return ResponseEntity.ok(respuesta);</span>
+	}
+	
+	// UT-35 (H-07)
+	@DeleteMapping(&quot;/deleteAsignacion&quot;)
+	public ResponseEntity&lt;Object&gt; deleteAsignacion(
+			@RequestBody(required = false) Asignaciones asignacion,
+			@RequestParam(value = &quot;id_asignacion&quot;, required = false) Integer id_asignacion,
+			@RequestParam(value = &quot;id&quot;, required = false) Integer id) {
+		
+<span class="fc" id="L177">		Integer deleteId = null;</span>
+<span class="pc bpc" id="L178" title="1 of 4 branches missed.">		if (asignacion != null &amp;&amp; asignacion.getId_asignacion() != null) {</span>
+<span class="fc" id="L179">			deleteId = asignacion.getId_asignacion();</span>
+<span class="pc bpc" id="L180" title="1 of 2 branches missed.">		} else if (id_asignacion != null) {</span>
+<span class="nc" id="L181">			deleteId = id_asignacion;</span>
+<span class="pc bpc" id="L182" title="1 of 2 branches missed.">		} else if (id != null) {</span>
+<span class="fc" id="L183">			deleteId = id;</span>
+		}
+		
+<span class="pc bpc" id="L186" title="1 of 4 branches missed.">		if (deleteId == null || !asignacionestable.existsById(deleteId)) {</span>
+<span class="fc" id="L187">			Map&lt;String, Object&gt; error = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L188">			error.put(&quot;status&quot;, HttpStatus.NOT_FOUND.value());</span>
+<span class="fc" id="L189">			error.put(&quot;error&quot;, &quot;Asignación no encontrada&quot;);</span>
+<span class="fc" id="L190">			error.put(&quot;mensaje&quot;, &quot;No se encontró ninguna asignación con el ID especificado para eliminar&quot;);</span>
+<span class="fc" id="L191">			error.put(&quot;resultado&quot;, 0);</span>
+<span class="fc" id="L192">			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);</span>
+		}
+		
+<span class="fc" id="L195">		asignacionestable.deleteById(deleteId);</span>
+<span class="fc" id="L196">		Map&lt;String, Object&gt; respuesta = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L197">		respuesta.put(&quot;status&quot;, HttpStatus.OK.value());</span>
+<span class="fc" id="L198">		respuesta.put(&quot;mensaje&quot;, &quot;Asignación eliminada exitosamente&quot;);</span>
+<span class="fc" id="L199">		respuesta.put(&quot;resultado&quot;, 1);</span>
+<span class="fc" id="L200">		return ResponseEntity.ok(respuesta);</span>
+	}   
+	
+	// UT-36 (H-08)
+	@RequestMapping(value = &quot;/buscarAsignaciones&quot;, method = {RequestMethod.GET, RequestMethod.POST})
+	public ResponseEntity&lt;List&lt;Asignaciones&gt;&gt; getAsignaciones() {
+<span class="fc" id="L206">		List&lt;Asignaciones&gt; listaAsignaciones = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L207">		asignacionestable.findAll().forEach(listaAsignaciones::add);</span>
+<span class="fc" id="L208">		return ResponseEntity.ok()</span>
+<span class="fc" id="L209">				.header(&quot;X-Mensaje&quot;, &quot;Asignaciones consultadas exitosamente. Total: &quot; + listaAsignaciones.size())</span>
+<span class="fc" id="L210">				.body(listaAsignaciones);</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

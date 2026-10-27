@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TareasController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Ejercicio5MyAPIGestor</a> &gt; <a href="index.source.html" class="el_package">com.mx.cbtis.gestor.controller</a> &gt; <span class="el_source">TareasController.java</span></div><h1>TareasController.java</h1><pre class="source lang-java linenums">package com.mx.cbtis.gestor.controller;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.mx.cbtis.gestor.modelo.Tareas;
+import com.mx.cbtis.gestor.repository.ProyectosRepository;
+import com.mx.cbtis.gestor.repository.TareasRepository;
+
+@RestController
+<span class="fc" id="L27">public class TareasController {</span>
+	
+	@Autowired
+	TareasRepository tareastable;
+	
+	@Autowired
+	ProyectosRepository proyectostable;
+	
+	// UT-16, UT-17 (H-08, H-10)
+	@RequestMapping(value = &quot;/getTarea&quot;, method = {RequestMethod.GET, RequestMethod.POST})
+	public ResponseEntity&lt;Object&gt; getTarea(
+			@RequestBody(required = false) Tareas body,
+			@RequestParam(value = &quot;id_proyecto&quot;, required = false) Integer idProyectoParam) {
+		
+<span class="fc" id="L41">		Integer idProyecto = null;</span>
+<span class="fc bfc" id="L42" title="All 4 branches covered.">		if (body != null &amp;&amp; body.getId_proyecto() != null) {</span>
+<span class="fc" id="L43">			idProyecto = body.getId_proyecto();</span>
+<span class="fc bfc" id="L44" title="All 2 branches covered.">		} else if (idProyectoParam != null) {</span>
+<span class="fc" id="L45">			idProyecto = idProyectoParam;</span>
+		}
+		
+<span class="fc bfc" id="L48" title="All 2 branches covered.">		if (idProyecto == null) {</span>
+<span class="fc" id="L49">			Map&lt;String, Object&gt; error = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L50">			error.put(&quot;status&quot;, HttpStatus.BAD_REQUEST.value());</span>
+<span class="fc" id="L51">			error.put(&quot;error&quot;, &quot;Parámetro faltante&quot;);</span>
+<span class="fc" id="L52">			error.put(&quot;mensaje&quot;, &quot;Debe proporcionar el ID del proyecto&quot;);</span>
+<span class="fc" id="L53">			return ResponseEntity.badRequest().body(error);</span>
+		}
+		
+		// H-10: Si el proyecto no existe en la base de datos
+<span class="fc bfc" id="L57" title="All 2 branches covered.">		if (!proyectostable.existsById(idProyecto)) {</span>
+<span class="fc" id="L58">			Map&lt;String, Object&gt; error = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L59">			error.put(&quot;status&quot;, HttpStatus.NOT_FOUND.value());</span>
+<span class="fc" id="L60">			error.put(&quot;error&quot;, &quot;Proyecto inexistente&quot;);</span>
+<span class="fc" id="L61">			error.put(&quot;mensaje&quot;, &quot;No se encontró ningún proyecto con el ID especificado: &quot; + idProyecto);</span>
+<span class="fc" id="L62">			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);</span>
+		}
+		
+<span class="fc" id="L65">		List&lt;Tareas&gt; listaTareas = tareastable.findByIdProyecto(idProyecto);</span>
+<span class="fc" id="L66">		return ResponseEntity.ok()</span>
+<span class="fc" id="L67">				.header(&quot;X-Mensaje&quot;, &quot;Tareas del proyecto consultadas exitosamente. Total: &quot; + listaTareas.size())</span>
+<span class="fc" id="L68">				.body(listaTareas);</span>
+	}
+	
+	// UT-18, UT-19 (H-02)
+	@GetMapping(&quot;/buscarTarea&quot;)
+	public ResponseEntity&lt;Object&gt; getTarea(
+			@RequestParam(value = &quot;id_tarea&quot;, required = false) Integer id_tarea,
+			@RequestParam(value = &quot;id&quot;, required = false) Integer id) {
+		
+<span class="fc bfc" id="L77" title="All 2 branches covered.">		Integer searchId = (id_tarea != null) ? id_tarea : id;</span>
+<span class="fc bfc" id="L78" title="All 2 branches covered.">		if (searchId == null) {</span>
+<span class="fc" id="L79">			Map&lt;String, Object&gt; error = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L80">			error.put(&quot;status&quot;, HttpStatus.BAD_REQUEST.value());</span>
+<span class="fc" id="L81">			error.put(&quot;error&quot;, &quot;Parámetro faltante&quot;);</span>
+<span class="fc" id="L82">			error.put(&quot;mensaje&quot;, &quot;Debe proporcionar el parámetro 'id_tarea' o 'id' para realizar la búsqueda&quot;);</span>
+<span class="fc" id="L83">			return ResponseEntity.badRequest().body(error);</span>
+		}
+		
+<span class="fc" id="L86">		Optional&lt;Tareas&gt; tarea = tareastable.findById(searchId);</span>
+<span class="fc bfc" id="L87" title="All 2 branches covered.">		if (tarea.isPresent()) {</span>
+<span class="fc" id="L88">			Tareas t = tarea.get();</span>
+<span class="fc" id="L89">			Map&lt;String, Object&gt; respuesta = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L90">			respuesta.put(&quot;status&quot;, HttpStatus.OK.value());</span>
+<span class="fc" id="L91">			respuesta.put(&quot;mensaje&quot;, &quot;Tarea encontrada exitosamente&quot;);</span>
+<span class="fc" id="L92">			respuesta.put(&quot;id_tarea&quot;, t.getId_tarea());</span>
+<span class="fc" id="L93">			respuesta.put(&quot;nombre&quot;, t.getNombre());</span>
+<span class="fc" id="L94">			respuesta.put(&quot;descripcion&quot;, t.getDescripcion());</span>
+<span class="fc" id="L95">			respuesta.put(&quot;fecha_vencimiento&quot;, t.getFecha_vencimiento());</span>
+<span class="fc" id="L96">			respuesta.put(&quot;lista&quot;, t.getLista());</span>
+<span class="fc" id="L97">			respuesta.put(&quot;estado&quot;, t.getEstado());</span>
+<span class="fc" id="L98">			respuesta.put(&quot;id_proyecto&quot;, t.getId_proyecto());</span>
+<span class="fc" id="L99">			return ResponseEntity.ok(respuesta);</span>
+		}
+		
+<span class="fc" id="L102">		Map&lt;String, Object&gt; error = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L103">		error.put(&quot;status&quot;, HttpStatus.NOT_FOUND.value());</span>
+<span class="fc" id="L104">		error.put(&quot;error&quot;, &quot;Tarea no encontrada&quot;);</span>
+<span class="fc" id="L105">		error.put(&quot;mensaje&quot;, &quot;No se encontró ninguna tarea con el ID especificado: &quot; + searchId);</span>
+<span class="fc" id="L106">		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);</span>
+	}
+	
+	// UT-20 (H-09, H-11)
+	@PostMapping(&quot;/addTareas&quot;)
+	public ResponseEntity&lt;Object&gt; addTareas(@RequestBody(required = false) Tareas tareas) {
+<span class="fc bfc" id="L112" title="All 2 branches covered.">		if (tareas == null) {</span>
+<span class="fc" id="L113">			Map&lt;String, Object&gt; error = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L114">			error.put(&quot;status&quot;, HttpStatus.BAD_REQUEST.value());</span>
+<span class="fc" id="L115">			error.put(&quot;error&quot;, &quot;Datos incompletos&quot;);</span>
+<span class="fc" id="L116">			error.put(&quot;mensaje&quot;, &quot;El cuerpo de la solicitud no contiene datos de la tarea&quot;);</span>
+<span class="fc" id="L117">			error.put(&quot;resultado&quot;, 0);</span>
+<span class="fc" id="L118">			return ResponseEntity.badRequest().body(error);</span>
+		}
+		
+		// H-09: Evitar duplicar o sobrescribir un ID ya existente
+<span class="pc bpc" id="L122" title="1 of 4 branches missed.">		if (tareas.getId_tarea() != null &amp;&amp; tareastable.existsById(tareas.getId_tarea())) {</span>
+<span class="fc" id="L123">			Map&lt;String, Object&gt; error = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L124">			error.put(&quot;status&quot;, HttpStatus.CONFLICT.value());</span>
+<span class="fc" id="L125">			error.put(&quot;error&quot;, &quot;ID existente&quot;);</span>
+<span class="fc" id="L126">			error.put(&quot;mensaje&quot;, &quot;Ya existe una tarea con el ID especificado&quot;);</span>
+<span class="fc" id="L127">			error.put(&quot;resultado&quot;, 0);</span>
+<span class="fc" id="L128">			return ResponseEntity.status(HttpStatus.CONFLICT).body(error);</span>
+		}
+		
+		// H-11: Validar integridad referencial de clave foránea id_proyecto
+<span class="pc bpc" id="L132" title="1 of 4 branches missed.">		if (tareas.getId_proyecto() == null || !proyectostable.existsById(tareas.getId_proyecto())) {</span>
+<span class="fc" id="L133">			Map&lt;String, Object&gt; error = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L134">			error.put(&quot;status&quot;, HttpStatus.BAD_REQUEST.value());</span>
+<span class="fc" id="L135">			error.put(&quot;error&quot;, &quot;Proyecto inexistente&quot;);</span>
+<span class="pc bpc" id="L136" title="1 of 2 branches missed.">			error.put(&quot;mensaje&quot;, &quot;El proyecto asociado (id_proyecto: &quot; + (tareas.getId_proyecto() != null ? tareas.getId_proyecto() : &quot;nulo&quot;) + &quot;) no existe&quot;);</span>
+<span class="fc" id="L137">			error.put(&quot;resultado&quot;, 0);</span>
+<span class="fc" id="L138">			return ResponseEntity.badRequest().body(error);</span>
+		}
+		
+<span class="fc" id="L141">		tareastable.save(tareas);</span>
+<span class="fc" id="L142">		Map&lt;String, Object&gt; respuesta = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L143">		respuesta.put(&quot;status&quot;, HttpStatus.OK.value());</span>
+<span class="fc" id="L144">		respuesta.put(&quot;mensaje&quot;, &quot;Tarea registrada exitosamente&quot;);</span>
+<span class="fc" id="L145">		respuesta.put(&quot;resultado&quot;, 1);</span>
+<span class="fc" id="L146">		return ResponseEntity.ok(respuesta);</span>
+	}
+	
+	// UT-21 (H-05, H-06, H-07, H-11)
+	@RequestMapping(value = &quot;/updateTareas&quot;, method = {RequestMethod.POST, RequestMethod.PUT})
+	public ResponseEntity&lt;Object&gt; updateTareas(@RequestBody(required = false) Tareas tareas) {
+<span class="pc bpc" id="L152" title="1 of 4 branches missed.">		if (tareas == null || tareas.getId_tarea() == null) {</span>
+<span class="fc" id="L153">			Map&lt;String, Object&gt; error = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L154">			error.put(&quot;status&quot;, HttpStatus.BAD_REQUEST.value());</span>
+<span class="fc" id="L155">			error.put(&quot;error&quot;, &quot;Datos incompletos&quot;);</span>
+<span class="fc" id="L156">			error.put(&quot;mensaje&quot;, &quot;Se requiere el ID de la tarea para actualizar&quot;);</span>
+<span class="fc" id="L157">			error.put(&quot;resultado&quot;, 0);</span>
+<span class="fc" id="L158">			return ResponseEntity.badRequest().body(error);</span>
+		}
+		
+		// H-06: Verificar que el registro exista antes de modificar
+<span class="fc bfc" id="L162" title="All 2 branches covered.">		if (!tareastable.existsById(tareas.getId_tarea())) {</span>
+<span class="fc" id="L163">			Map&lt;String, Object&gt; error = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L164">			error.put(&quot;status&quot;, HttpStatus.NOT_FOUND.value());</span>
+<span class="fc" id="L165">			error.put(&quot;error&quot;, &quot;Tarea no encontrada&quot;);</span>
+<span class="fc" id="L166">			error.put(&quot;mensaje&quot;, &quot;No existe una tarea con el ID proporcionado&quot;);</span>
+<span class="fc" id="L167">			error.put(&quot;resultado&quot;, 0);</span>
+<span class="fc" id="L168">			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);</span>
+		}
+		
+		// H-11: Validar integridad referencial de clave foránea si se especifica
+<span class="pc bpc" id="L172" title="2 of 4 branches missed.">		if (tareas.getId_proyecto() != null &amp;&amp; !proyectostable.existsById(tareas.getId_proyecto())) {</span>
+<span class="nc" id="L173">			Map&lt;String, Object&gt; error = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L174">			error.put(&quot;status&quot;, HttpStatus.BAD_REQUEST.value());</span>
+<span class="nc" id="L175">			error.put(&quot;error&quot;, &quot;Proyecto inexistente&quot;);</span>
+<span class="nc" id="L176">			error.put(&quot;mensaje&quot;, &quot;El proyecto asociado especificado no existe&quot;);</span>
+<span class="nc" id="L177">			error.put(&quot;resultado&quot;, 0);</span>
+<span class="nc" id="L178">			return ResponseEntity.badRequest().body(error);</span>
+		}
+		
+<span class="fc" id="L181">		tareastable.save(tareas);</span>
+<span class="fc" id="L182">		Map&lt;String, Object&gt; respuesta = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L183">		respuesta.put(&quot;status&quot;, HttpStatus.OK.value());</span>
+<span class="fc" id="L184">		respuesta.put(&quot;mensaje&quot;, &quot;Tarea actualizada exitosamente&quot;);</span>
+<span class="fc" id="L185">		respuesta.put(&quot;resultado&quot;, 1);</span>
+<span class="fc" id="L186">		return ResponseEntity.ok(respuesta);</span>
+	}
+	
+	// UT-22 (H-07)
+	@DeleteMapping(&quot;/deleteTareas&quot;)
+	public ResponseEntity&lt;Object&gt; deleteTareas(
+			@RequestBody(required = false) Tareas tareas,
+			@RequestParam(value = &quot;id_tarea&quot;, required = false) Integer id_tarea,
+			@RequestParam(value = &quot;id&quot;, required = false) Integer id) {
+		
+<span class="fc" id="L196">		Integer deleteId = null;</span>
+<span class="pc bpc" id="L197" title="1 of 4 branches missed.">		if (tareas != null &amp;&amp; tareas.getId_tarea() != null) {</span>
+<span class="fc" id="L198">			deleteId = tareas.getId_tarea();</span>
+<span class="pc bpc" id="L199" title="1 of 2 branches missed.">		} else if (id_tarea != null) {</span>
+<span class="nc" id="L200">			deleteId = id_tarea;</span>
+<span class="pc bpc" id="L201" title="1 of 2 branches missed.">		} else if (id != null) {</span>
+<span class="fc" id="L202">			deleteId = id;</span>
+		}
+		
+<span class="pc bpc" id="L205" title="1 of 4 branches missed.">		if (deleteId == null || !tareastable.existsById(deleteId)) {</span>
+<span class="fc" id="L206">			Map&lt;String, Object&gt; error = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L207">			error.put(&quot;status&quot;, HttpStatus.NOT_FOUND.value());</span>
+<span class="fc" id="L208">			error.put(&quot;error&quot;, &quot;Tarea no encontrada&quot;);</span>
+<span class="fc" id="L209">			error.put(&quot;mensaje&quot;, &quot;No se encontró ninguna tarea con el ID especificado para eliminar&quot;);</span>
+<span class="fc" id="L210">			error.put(&quot;resultado&quot;, 0);</span>
+<span class="fc" id="L211">			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);</span>
+		}
+		
+<span class="fc" id="L214">		tareastable.deleteById(deleteId);</span>
+<span class="fc" id="L215">		Map&lt;String, Object&gt; respuesta = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L216">		respuesta.put(&quot;status&quot;, HttpStatus.OK.value());</span>
+<span class="fc" id="L217">		respuesta.put(&quot;mensaje&quot;, &quot;Tarea eliminada exitosamente&quot;);</span>
+<span class="fc" id="L218">		respuesta.put(&quot;resultado&quot;, 1);</span>
+<span class="fc" id="L219">		return ResponseEntity.ok(respuesta);</span>
+	}
+	
+	// UT-23 (H-08)
+	@RequestMapping(value = &quot;/buscarTareas&quot;, method = {RequestMethod.GET, RequestMethod.POST})
+	public ResponseEntity&lt;List&lt;Tareas&gt;&gt; getTareas() {
+<span class="fc" id="L225">		List&lt;Tareas&gt; listaTareas = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L226">		tareastable.findAll().forEach(listaTareas::add);</span>
+<span class="fc" id="L227">		return ResponseEntity.ok()</span>
+<span class="fc" id="L228">				.header(&quot;X-Mensaje&quot;, &quot;Tareas consultadas exitosamente. Total: &quot; + listaTareas.size())</span>
+<span class="fc" id="L229">				.body(listaTareas);</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
