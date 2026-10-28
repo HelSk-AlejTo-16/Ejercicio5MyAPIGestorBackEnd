@@ -209,6 +209,48 @@ public class ComentariosControllerTest {
     }
 
     @Test
+    @DisplayName("Agregar comentario con ID duplicado (409)")
+    void testAddComentarioDuplicado() throws Exception {
+        Comentarios c = new Comentarios();
+        c.setId_comentario(10);
+        when(comentariostable.existsById(10)).thenReturn(true);
+
+        mockMvc.perform(post("/addComentario")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(mapper.writeValueAsString(c)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409));
+    }
+
+    @Test
+    @DisplayName("Actualizar comentario con tarea inexistente (400)")
+    void testUpdateComentarioTareaInexistente() throws Exception {
+        Comentarios c = new Comentarios();
+        c.setId_comentario(5);
+        c.setId_tarea(999);
+
+        when(comentariostable.existsById(5)).thenReturn(true);
+        when(tareastable.existsById(999)).thenReturn(false);
+
+        mockMvc.perform(put("/updateComentario")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(mapper.writeValueAsString(c)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    @DisplayName("Eliminar comentario con param id_comentario (200)")
+    void testDeleteComentarioParamIdComentario() throws Exception {
+        when(comentariostable.existsById(7)).thenReturn(true);
+        doNothing().when(comentariostable).deleteById(7);
+
+        mockMvc.perform(delete("/deleteComentario").param("id_comentario", "7"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultado").value(1));
+    }
+
+    @Test
     @DisplayName("Listar todos los comentarios (200)")
     void testListarComentarios() throws Exception {
         when(comentariostable.findAll()).thenReturn(Collections.emptyList());

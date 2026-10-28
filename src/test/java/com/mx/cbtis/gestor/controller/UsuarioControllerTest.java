@@ -279,6 +279,17 @@ public class UsuarioControllerTest {
     }
 
     @Test
+    @DisplayName("Eliminar usuario con parametro id_usuario (200)")
+    void testDeleteUsuarioParamIdUsuario() throws Exception {
+        when(usuariotable.existsById(7)).thenReturn(true);
+        doNothing().when(usuariotable).deleteById(7);
+
+        mockMvc.perform(delete("/deleteUsuario").param("id_usuario", "7"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultado").value(1));
+    }
+
+    @Test
     @DisplayName("Listar usuarios catálogo completo (200)")
     void testListarUsuarios() throws Exception {
         when(usuariotable.findAll()).thenReturn(Collections.emptyList());

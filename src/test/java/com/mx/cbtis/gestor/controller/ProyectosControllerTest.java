@@ -182,6 +182,17 @@ public class ProyectosControllerTest {
     }
 
     @Test
+    @DisplayName("Eliminar proyecto con parametro id_proyecto (200)")
+    void testDeleteProyectoParamIdProyecto() throws Exception {
+        when(proyectostable.existsById(7)).thenReturn(true);
+        doNothing().when(proyectostable).deleteById(7);
+
+        mockMvc.perform(delete("/deleteProyecto").param("id_proyecto", "7"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultado").value(1));
+    }
+
+    @Test
     @DisplayName("Listar proyectos catálogo completo (200)")
     void testListarProyectos() throws Exception {
         when(proyectostable.findAll()).thenReturn(Collections.emptyList());

@@ -184,6 +184,82 @@ public class AsignacionesControllerTest {
     }
 
     @Test
+    @DisplayName("Agregar asignación con ID existente (409)")
+    void testAddAsignacionIdExistente() throws Exception {
+        Asignaciones a = new Asignaciones();
+        a.setId_asignacion(10);
+        when(asignacionestable.existsById(10)).thenReturn(true);
+
+        mockMvc.perform(post("/addAsignacion")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(mapper.writeValueAsString(a)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409));
+    }
+
+    @Test
+    @DisplayName("Agregar asignación con tarea inexistente (400)")
+    void testAddAsignacionTareaInexistente() throws Exception {
+        Asignaciones a = new Asignaciones();
+        a.setId_usuario(1);
+        a.setId_tarea(999);
+
+        when(usuariotable.existsById(1)).thenReturn(true);
+        when(tareastable.existsById(999)).thenReturn(false);
+
+        mockMvc.perform(post("/addAsignacion")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(mapper.writeValueAsString(a)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    @DisplayName("Actualizar asignación con usuario inexistente (400)")
+    void testUpdateAsignacionUsuarioInexistente() throws Exception {
+        Asignaciones a = new Asignaciones();
+        a.setId_asignacion(5);
+        a.setId_usuario(999);
+
+        when(asignacionestable.existsById(5)).thenReturn(true);
+        when(usuariotable.existsById(999)).thenReturn(false);
+
+        mockMvc.perform(put("/updateAsignacion")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(mapper.writeValueAsString(a)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    @DisplayName("Actualizar asignación con tarea inexistente (400)")
+    void testUpdateAsignacionTareaInexistente() throws Exception {
+        Asignaciones a = new Asignaciones();
+        a.setId_asignacion(5);
+        a.setId_tarea(999);
+
+        when(asignacionestable.existsById(5)).thenReturn(true);
+        when(tareastable.existsById(999)).thenReturn(false);
+
+        mockMvc.perform(put("/updateAsignacion")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(mapper.writeValueAsString(a)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    @DisplayName("Eliminar asignación con param id_asignacion (200)")
+    void testDeleteAsignacionParamIdAsignacion() throws Exception {
+        when(asignacionestable.existsById(7)).thenReturn(true);
+        doNothing().when(asignacionestable).deleteById(7);
+
+        mockMvc.perform(delete("/deleteAsignacion").param("id_asignacion", "7"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultado").value(1));
+    }
+
+    @Test
     @DisplayName("Listar todas las asignaciones (200)")
     void testListarAsignaciones() throws Exception {
         when(asignacionestable.findAll()).thenReturn(Collections.emptyList());

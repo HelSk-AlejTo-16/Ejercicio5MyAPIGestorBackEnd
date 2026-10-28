@@ -224,6 +224,34 @@ public class TareasControllerTest {
     }
 
     @Test
+    @DisplayName("Actualizar tarea con proyecto asociado inexistente (400)")
+    void testUpdateTareaProyectoInexistente() throws Exception {
+        Tareas t = new Tareas();
+        t.setId_tarea(4);
+        t.setId_proyecto(999);
+
+        when(tareastable.existsById(4)).thenReturn(true);
+        when(proyectostable.existsById(999)).thenReturn(false);
+
+        mockMvc.perform(post("/updateTareas")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(mapper.writeValueAsString(t)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Proyecto inexistente"));
+    }
+
+    @Test
+    @DisplayName("Eliminar tarea con parametro id_tarea (200)")
+    void testDeleteTareaParamIdTarea() throws Exception {
+        when(tareastable.existsById(4)).thenReturn(true);
+        doNothing().when(tareastable).deleteById(4);
+
+        mockMvc.perform(delete("/deleteTareas").param("id_tarea", "4"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultado").value(1));
+    }
+
+    @Test
     @DisplayName("Listar todas las tareas (200)")
     void testListarTareas() throws Exception {
         when(tareastable.findAll()).thenReturn(Collections.emptyList());
