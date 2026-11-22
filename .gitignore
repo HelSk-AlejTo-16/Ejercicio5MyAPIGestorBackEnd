@@ -1,0 +1,10 @@
+target/
+bin/
+reportes/
+.env
+.env.*
+.idea/
+.vscode/
+*.iml
+*.jar
+*.class

@@ -1,0 +1,16 @@
+# Exclusión de librerías de terceros y archivos vendor para análisis Semgrep
+# Evita timeouts en reglas complejas (ej. tainted-html-string, fixpoint) en código minificado/externo
+**/static/js/bootstrap*
+**/static/css/bootstrap*
+**/static/js/jquery*
+**/static/js/popper*
+
+# Artefactos de compilación, duplicados de IDE y reportes
+**/target/
+**/bin/
+**/build/
+**/reportes/
+**/evidencias/
+**/.idea/
+**/.vscode/
+**/dump-*.sql
