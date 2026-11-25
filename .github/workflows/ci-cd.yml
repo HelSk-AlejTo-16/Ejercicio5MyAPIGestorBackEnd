@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   ci-devsecops:
-    name: Build, Tests, JaCoCo, SonarCloud, Semgrep & Docker
+    name: Build, Tests, JaCoCo, SBOM, SonarCloud, Semgrep, Docker & Trivy
     runs-on: ubuntu-latest
 
     steps:
@@ -28,13 +28,13 @@ jobs:
           java-version: '21'
           cache: 'maven'
 
-      - name: Compilar, ejecutar Pruebas Unitarias (Surefire) y Cobertura (JaCoCo)
-        run: mvn clean test jacoco:report -B
+      - name: Compilar, Pruebas (Surefire), Cobertura (JaCoCo) y SBOM (CycloneDX)
+        run: mvn clean test jacoco:report cyclonedx:makeAggregateBom -B
 
-      - name: Publicar resumen de Pruebas y Cobertura en GitHub Summary
+      - name: Publicar resumen de Pruebas, Cobertura y SBOM en GitHub Summary
         run: |
           python3 - << 'EOF'
-          import glob, os, xml.etree.ElementTree as ET
+          import glob, json, os, xml.etree.ElementTree as ET
 
           tests = failures = errors = skipped = 0
           for f in glob.glob("target/surefire-reports/TEST-*.xml"):
@@ -54,16 +54,22 @@ jobs:
                   pct = (v / (m + v) * 100.0) if (m + v) else 100.0
                   cov[c.attrib["type"]] = (v, m + v, pct)
 
+          sbom_count = 0
+          if os.path.exists("target/bom.json"):
+              with open("target/bom.json", encoding="utf-8") as bf:
+                  sbom_count = len(json.load(bf).get("components", []))
+
           inst = cov.get("INSTRUCTION", (0, 0, 0.0))
           br = cov.get("BRANCH", (0, 0, 0.0))
 
           summary = [
-              "## Resultados CI Backend (`Ejercicio5MyAPIGestor`)",
+              "## Resultados DevSecOps Backend (`Ejercicio5MyAPIGestor`)",
               "| Metrica | Resultado |",
               "| :--- | :---: |",
               f"| **Pruebas Unitarias (Surefire)** | `{tests}` ejecutadas (`{failures}` fallos, `{errors}` errores, `{skipped}` omitidas) |",
               f"| **Cobertura Instrucciones (JaCoCo)** | **{inst[2]:.2f}%** (`{inst[0]}/{inst[1]}`) |",
               f"| **Cobertura Ramas (JaCoCo)** | **{br[2]:.2f}%** (`{br[0]}/{br[1]}`) |",
+              f"| **Inventario SBOM (CycloneDX 1.5)** | `{sbom_count}` componentes catalogados (`bom.json`) |",
               ""
           ]
           with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as fh:
@@ -123,7 +129,42 @@ jobs:
       - name: Verificar construccion de imagen Docker Multi-Stage
         run: docker build -t gestor-backend:ci .
 
-      - name: Publicar Reportes Verificables (Surefire, JaCoCo, Semgrep)
+      - name: Escaneo SCA de Dependencias e Imagen Contenedor (Trivy)
+        run: |
+          docker save gestor-backend:ci -o reportes/image.tar
+          docker run --rm \
+            -v "${GITHUB_WORKSPACE}:/src" \
+            aquasec/trivy:latest \
+            fs --scanners vuln --quiet --format json --output /src/reportes/trivy-sca.json /src/pom.xml
+
+          docker run --rm \
+            -v "${GITHUB_WORKSPACE}/reportes:/reportes" \
+            aquasec/trivy:latest \
+            image --scanners vuln --quiet --input /reportes/image.tar --format json --output /reportes/trivy-image.json
+          rm -f reportes/image.tar
+
+          python3 - << 'EOF'
+          import json, os
+          def count_vulns(path):
+              counts = {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0}
+              if os.path.exists(path):
+                  with open(path, encoding="utf-8") as fh:
+                      data = json.load(fh)
+                  for res in data.get("Results", []):
+                      for v in res.get("Vulnerabilities", []) or []:
+                          sev = v.get("Severity", "LOW")
+                          if sev in counts:
+                              counts[sev] += 1
+              return counts
+
+          sca = count_vulns("reportes/trivy-sca.json")
+          img = count_vulns("reportes/trivy-image.json")
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as out:
+              out.write(f"- **Seguridad SCA Dependencias (Trivy):** Critical `{sca['CRITICAL']}`, High `{sca['HIGH']}`, Medium `{sca['MEDIUM']}`, Low `{sca['LOW']}` (monitoreado por Dependabot).\n")
+              out.write(f"- **Seguridad Imagen Docker (Trivy):** Critical `{img['CRITICAL']}`, High `{img['HIGH']}`, Medium `{img['MEDIUM']}`, Low `{img['LOW']}`.\n")
+          EOF
+
+      - name: Publicar Reportes Verificables (Surefire, JaCoCo, SBOM, Semgrep, Trivy)
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -131,5 +172,8 @@ jobs:
           path: |
             target/surefire-reports/
             target/site/jacoco/
+            target/bom.json
             reportes/semgrep-backend.json
+            reportes/trivy-sca.json
+            reportes/trivy-image.json
           retention-days: 30
