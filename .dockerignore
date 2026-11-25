@@ -1,0 +1,9 @@
+.git/
+.github/
+target/
+reportes/
+Jenkinsfile
+*.md
+*.sql
+.semgrepignore
+.gitignore
