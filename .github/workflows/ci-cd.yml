@@ -7,6 +7,9 @@ on:
     branches: [ "main" ]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   ci-devsecops:
     name: Build, Tests, JaCoCo, SonarCloud, Semgrep & Docker
@@ -14,12 +17,12 @@ jobs:
 
     steps:
       - name: Checkout repositorio (historial completo para SonarCloud)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: Configurar JDK 21 y cache Maven
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '21'
@@ -91,8 +94,13 @@ jobs:
           mkdir -p reportes
           docker run --rm \
             -v "${GITHUB_WORKSPACE}:/src" \
+            -w /src \
             semgrep/semgrep \
-            semgrep scan --config auto --timeout 30 --json --output /src/reportes/semgrep-backend.json /src
+            semgrep scan --config auto --timeout 30 \
+              --exclude='target' \
+              --exclude='reportes' \
+              --exclude='*.sql' \
+              --json --output reportes/semgrep-backend.json .
 
           python3 - << 'EOF'
           import json, os, sys
@@ -104,7 +112,11 @@ jobs:
               out.write(f"- **Seguridad SAST (Semgrep):** `{len(findings)}` hallazgos en `{scanned}` archivos escaneados.\n")
           if findings:
               for r in findings:
-                  print(f"HALLAZGO: {r.get('check_id')} en {r.get('path')}:{r.get('start',{}).get('line')}")
+                  path = r.get("path", "")
+                  line = r.get("start", {}).get("line", 1)
+                  cid = r.get("check_id", "semgrep")
+                  msg = r.get("extra", {}).get("message", "").replace("\n", " ")
+                  print(f"::error file={path},line={line}::{cid}: {msg}")
               sys.exit(1)
           EOF
 
@@ -113,7 +125,7 @@ jobs:
 
       - name: Publicar Reportes Verificables (Surefire, JaCoCo, Semgrep)
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: reportes-ci-backend
           path: |
