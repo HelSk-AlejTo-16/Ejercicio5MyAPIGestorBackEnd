@@ -131,17 +131,18 @@ jobs:
 
       - name: Escaneo SCA de Dependencias e Imagen Contenedor (Trivy)
         run: |
-          docker save gestor-backend:ci -o reportes/image.tar
-          docker run --rm \
-            -v "${GITHUB_WORKSPACE}:/src" \
-            aquasec/trivy:latest \
-            fs --scanners vuln --quiet --format json --output /src/reportes/trivy-sca.json /src/pom.xml
-
-          docker run --rm \
-            -v "${GITHUB_WORKSPACE}/reportes:/reportes" \
-            aquasec/trivy:latest \
-            image --scanners vuln --quiet --input /reportes/image.tar --format json --output /reportes/trivy-image.json
-          rm -f reportes/image.tar
+          if command -v trivy >/dev/null 2>&1; then
+            trivy fs --scanners vuln --exit-code 0 --quiet --format json --output reportes/trivy-sca.json pom.xml
+            trivy image --scanners vuln --exit-code 0 --quiet --format json --output reportes/trivy-image.json gestor-backend:ci
+          else
+            docker save gestor-backend:ci -o reportes/image.tar
+            chmod 644 reportes/image.tar
+            docker run --rm -v "${GITHUB_WORKSPACE}:/src" ghcr.io/aquasecurity/trivy:latest \
+              fs --scanners vuln --exit-code 0 --quiet --format json --output /src/reportes/trivy-sca.json /src/pom.xml
+            docker run --rm -v "${GITHUB_WORKSPACE}/reportes:/reportes" ghcr.io/aquasecurity/trivy:latest \
+              image --scanners vuln --exit-code 0 --quiet --input /reportes/image.tar --format json --output /reportes/trivy-image.json
+            rm -f reportes/image.tar
+          fi
 
           python3 - << 'EOF'
           import json, os
