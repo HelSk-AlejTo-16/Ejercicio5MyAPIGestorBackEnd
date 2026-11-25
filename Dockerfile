@@ -10,7 +10,7 @@ RUN mvn clean package -DskipTests -B && \
     find target -maxdepth 1 -name "*.jar" ! -name "*.original" -exec cp {} /app/app.jar \;
 
 # Etapa 2: Imagen de ejecución ligera con usuario no-root
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:24-jre-alpine
 WORKDIR /app
 
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
