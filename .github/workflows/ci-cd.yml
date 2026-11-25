@@ -129,16 +129,16 @@ jobs:
       - name: Verificar construccion de imagen Docker Multi-Stage
         run: docker build -t gestor-backend:ci .
 
-      - name: Escaneo SCA de Dependencias e Imagen Contenedor (Trivy)
+      - name: Escaneo SCA de Dependencias (SBOM) e Imagen Contenedor (Trivy)
         run: |
           if command -v trivy >/dev/null 2>&1; then
-            trivy fs --scanners vuln --exit-code 0 --quiet --format json --output reportes/trivy-sca.json pom.xml
+            trivy sbom --exit-code 0 --quiet --format json --output reportes/trivy-sca.json target/bom.json
             trivy image --scanners vuln --exit-code 0 --quiet --format json --output reportes/trivy-image.json gestor-backend:ci
           else
             docker save gestor-backend:ci -o reportes/image.tar
             chmod 644 reportes/image.tar
             docker run --rm -v "${GITHUB_WORKSPACE}:/src" ghcr.io/aquasecurity/trivy:latest \
-              fs --scanners vuln --exit-code 0 --quiet --format json --output /src/reportes/trivy-sca.json /src/pom.xml
+              sbom --exit-code 0 --quiet --format json --output /src/reportes/trivy-sca.json /src/target/bom.json
             docker run --rm -v "${GITHUB_WORKSPACE}/reportes:/reportes" ghcr.io/aquasecurity/trivy:latest \
               image --scanners vuln --exit-code 0 --quiet --input /reportes/image.tar --format json --output /reportes/trivy-image.json
             rm -f reportes/image.tar
@@ -150,9 +150,9 @@ jobs:
               counts = {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0}
               if os.path.exists(path):
                   with open(path, encoding="utf-8") as fh:
-                      data = json.load(fh)
-                  for res in data.get("Results", []):
-                      for v in res.get("Vulnerabilities", []) or []:
+                      data = json.load(fh) or {}
+                  for res in (data.get("Results") or []):
+                      for v in (res.get("Vulnerabilities") or []):
                           sev = v.get("Severity", "LOW")
                           if sev in counts:
                               counts[sev] += 1
