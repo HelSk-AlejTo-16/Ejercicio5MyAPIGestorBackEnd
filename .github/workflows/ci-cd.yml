@@ -1,0 +1,123 @@
+name: CI/CD Backend DevSecOps
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  ci-devsecops:
+    name: Build, Tests, JaCoCo, SonarCloud, Semgrep & Docker
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repositorio (historial completo para SonarCloud)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configurar JDK 21 y cache Maven
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'maven'
+
+      - name: Compilar, ejecutar Pruebas Unitarias (Surefire) y Cobertura (JaCoCo)
+        run: mvn clean test jacoco:report -B
+
+      - name: Publicar resumen de Pruebas y Cobertura en GitHub Summary
+        run: |
+          python3 - << 'EOF'
+          import glob, os, xml.etree.ElementTree as ET
+
+          tests = failures = errors = skipped = 0
+          for f in glob.glob("target/surefire-reports/TEST-*.xml"):
+              root = ET.parse(f).getroot()
+              tests += int(root.attrib.get("tests", 0))
+              failures += int(root.attrib.get("failures", 0))
+              errors += int(root.attrib.get("errors", 0))
+              skipped += int(root.attrib.get("skipped", 0))
+
+          cov = {}
+          jacoco_xml = "target/site/jacoco/jacoco.xml"
+          if os.path.exists(jacoco_xml):
+              jroot = ET.parse(jacoco_xml).getroot()
+              for c in jroot.findall("counter"):
+                  m = int(c.attrib["missed"])
+                  v = int(c.attrib["covered"])
+                  pct = (v / (m + v) * 100.0) if (m + v) else 100.0
+                  cov[c.attrib["type"]] = (v, m + v, pct)
+
+          inst = cov.get("INSTRUCTION", (0, 0, 0.0))
+          br = cov.get("BRANCH", (0, 0, 0.0))
+
+          summary = [
+              "## Resultados CI Backend (`Ejercicio5MyAPIGestor`)",
+              "| Metrica | Resultado |",
+              "| :--- | :---: |",
+              f"| **Pruebas Unitarias (Surefire)** | `{tests}` ejecutadas (`{failures}` fallos, `{errors}` errores, `{skipped}` omitidas) |",
+              f"| **Cobertura Instrucciones (JaCoCo)** | **{inst[2]:.2f}%** (`{inst[0]}/{inst[1]}`) |",
+              f"| **Cobertura Ramas (JaCoCo)** | **{br[2]:.2f}%** (`{br[0]}/{br[1]}`) |",
+              ""
+          ]
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as fh:
+              fh.write("\n".join(summary) + "\n")
+          EOF
+
+      - name: Analisis de Calidad de Codigo (SonarCloud)
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_ORG: ${{ vars.SONAR_ORGANIZATION || 'helsk-alejto-16' }}
+          SONAR_KEY: ${{ vars.SONAR_PROJECT_KEY || 'HelSk-AlejTo-16_Ejercicio5MyAPIGestorBackEnd' }}
+        run: |
+          if [ -n "$SONAR_TOKEN" ]; then
+            mvn sonar:sonar \
+              -Dsonar.host.url=https://sonarcloud.io \
+              -Dsonar.organization="$SONAR_ORG" \
+              -Dsonar.projectKey="$SONAR_KEY" \
+              -Dsonar.token="$SONAR_TOKEN" \
+              -B
+            echo "- **Calidad (SonarCloud):** Enviado exitosamente al proyecto \`$SONAR_KEY\`." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "SONAR_TOKEN no configurado aun; omitiendo envio a SonarCloud."
+            echo "- **Calidad (SonarCloud):** Pendiente de configurar secret \`SONAR_TOKEN\` en el repositorio." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Escaneo de Seguridad SAST (Semgrep)
+        run: |
+          mkdir -p reportes
+          docker run --rm \
+            -v "${GITHUB_WORKSPACE}:/src" \
+            semgrep/semgrep \
+            semgrep scan --config auto --timeout 30 --json --output /src/reportes/semgrep-backend.json /src
+
+          python3 - << 'EOF'
+          import json, os, sys
+          with open("reportes/semgrep-backend.json", encoding="utf-8") as fh:
+              data = json.load(fh)
+          scanned = len(data.get("paths", {}).get("scanned", []))
+          findings = data.get("results", [])
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as out:
+              out.write(f"- **Seguridad SAST (Semgrep):** `{len(findings)}` hallazgos en `{scanned}` archivos escaneados.\n")
+          if findings:
+              for r in findings:
+                  print(f"HALLAZGO: {r.get('check_id')} en {r.get('path')}:{r.get('start',{}).get('line')}")
+              sys.exit(1)
+          EOF
+
+      - name: Verificar construccion de imagen Docker Multi-Stage
+        run: docker build -t gestor-backend:ci .
+
+      - name: Publicar Reportes Verificables (Surefire, JaCoCo, Semgrep)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reportes-ci-backend
+          path: |
+            target/surefire-reports/
+            target/site/jacoco/
+            reportes/semgrep-backend.json
+          retention-days: 30
