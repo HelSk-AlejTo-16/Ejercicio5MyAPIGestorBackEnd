@@ -30,7 +30,13 @@ jobs:
           cache: 'maven'
 
       - name: Compilar, Pruebas (Surefire), Cobertura (JaCoCo) y SBOM (CycloneDX)
-        run: mvn clean test jacoco:report cyclonedx:makeAggregateBom -B
+        run: |
+          for attempt in 1 2 3; do
+            if mvn clean test jacoco:report cyclonedx:makeAggregateBom -B; then break; fi
+            if [ "$attempt" -eq 3 ]; then exit 1; fi
+            echo "Reintentando Maven ($attempt/3) tras posible HTTP 429 en Maven Central..."
+            sleep 15
+          done
 
       - name: Publicar resumen de Pruebas, Cobertura y SBOM en GitHub Summary
         run: |
@@ -84,12 +90,17 @@ jobs:
           SONAR_KEY: ${{ vars.SONAR_PROJECT_KEY || 'HelSk-AlejTo-16_Ejercicio5MyAPIGestorBackEnd' }}
         run: |
           if [ -n "$SONAR_TOKEN" ]; then
-            mvn sonar:sonar \
-              -Dsonar.host.url=https://sonarcloud.io \
-              -Dsonar.organization="$SONAR_ORG" \
-              -Dsonar.projectKey="$SONAR_KEY" \
-              -Dsonar.token="$SONAR_TOKEN" \
-              -B
+            for attempt in 1 2 3; do
+              if mvn sonar:sonar \
+                -Dsonar.host.url=https://sonarcloud.io \
+                -Dsonar.organization="$SONAR_ORG" \
+                -Dsonar.projectKey="$SONAR_KEY" \
+                -Dsonar.token="$SONAR_TOKEN" \
+                -B; then break; fi
+              if [ "$attempt" -eq 3 ]; then exit 1; fi
+              echo "Reintentando SonarCloud ($attempt/3) tras posible HTTP 429 en Maven Central..."
+              sleep 15
+            done
             echo "- **Calidad (SonarCloud):** Enviado exitosamente al proyecto \`$SONAR_KEY\`." >> "$GITHUB_STEP_SUMMARY"
           else
             echo "SONAR_TOKEN no configurado aun; omitiendo envio a SonarCloud."

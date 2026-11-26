@@ -19,7 +19,7 @@
         <!-- Compatibilidad completa con Java 21 -->
         <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
         <jacoco.version>0.8.12</jacoco.version>
-        <sonar.maven.version>4.0.0.4121</sonar.maven.version>
+        <sonar.maven.version>5.5.0.6356</sonar.maven.version>
         <!-- Conecta el reporte XML de JaCoCo con SonarQube -->
         <sonar.coverage.jacoco.xmlReportPaths>${project.build.directory}/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
         <!-- Exclusiones de SonarQube: enfocar cobertura en controladores con lógica de negocio -->
